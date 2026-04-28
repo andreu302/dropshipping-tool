@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import * as cheerio from 'cheerio';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -19,22 +20,30 @@ export async function GET(request) {
     });
 
     const html = await response.text();
-
+    const $ = cheerio.load(html);
     const products = [];
-    const regex = /"title":"([^"]+)","price":(\d+\.?\d*).*?"imageUrl":"([^"]+)"/g;
-    let match;
 
-    while ((match = regex.exec(html)) !== null && products.length < 12) {
-      const costPrice = parseFloat(match[2]);
-      const sellingPrice = Math.ceil(costPrice / (1 - 0.40 - 0.14) * 100) / 100;
+    $('[class*=product-card]').each((i, el) => {
+      if (products.length >= 12) return false;
 
-      products.push({
-        title: match[1],
-        price: costPrice,
-        sellingPrice,
-        image: match[3].replace(/\\/g, ''),
-      });
-    }
+      const title = $(el).find('[class*=title]').text().trim();
+      const priceText = $(el).find('[class*=price]').first().text().trim();
+      const costPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+      const image = $(el).find('img').attr('src') || $(el).find('img').attr('data-src');
+      const link = $(el).find('a').attr('href');
+
+      if (title && costPrice) {
+        const sellingPrice = Math.ceil((costPrice / (1 - 0.40 - 0.14)) * 100) / 100;
+
+        products.push({
+          title,
+          price: costPrice,
+          sellingPrice,
+          image: image?.startsWith('//') ? `https:${image}` : image,
+          url: link?.startsWith('//') ? `https:${link}` : link,
+        });
+      }
+    });
 
     return NextResponse.json({ products });
   } catch (error) {
