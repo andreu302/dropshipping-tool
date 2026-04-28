@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { searchProducts, calculateSellingPrice } from '@/lib/aliexpress';
+
+const { searchProducts, calculateSellingPrice } = require('@/lib/aliexpress');
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
