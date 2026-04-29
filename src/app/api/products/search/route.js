@@ -21,7 +21,11 @@ export async function GET(request) {
     const items = response.data?.result?.resultList || [];
 
     const products = items.slice(0, 12).map((item) => {
-      const costPrice = parseFloat(item.item?.sku?.def?.promotionPrice || item.item?.sku?.def?.price || 0);
+      const costPrice = parseFloat(
+        item.item?.sku?.def?.promotionPrice ||
+        item.item?.sku?.def?.price ||
+        0
+      );
       const sellingPrice = Math.ceil((costPrice / (1 - 0.40 - 0.14)) * 100) / 100;
       return {
         title: item.item?.title || '',
@@ -34,6 +38,7 @@ export async function GET(request) {
 
     return NextResponse.json({ products });
   } catch (error) {
+    console.error('RapidAPI error:', error.response?.data || error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
