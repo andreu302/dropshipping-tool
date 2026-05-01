@@ -13,10 +13,11 @@ export async function POST(request) {
     const product = await request.json();
 
     // 1. Descobrir a melhor categoria no Mercado Livre usando o Preditor
-    const predictorRes = await fetch(`https://api.mercadolibre.com/sites/MLB/category_predictor?title=${encodeURIComponent(product.title)}`);
+    const predictorRes = await fetch(`https://api.mercadolibre.com/sites/MLB/domain_discovery/search?limit=1&q=${encodeURIComponent(product.title)}`);
     const predictorData = await predictorRes.json();
     
-    const categoryId = predictorData.id || 'MLB1953'; // Default para 'Outros' se falhar
+    // O retorno de domain_discovery é um array. Pegamos o primeiro item.
+    const categoryId = predictorData[0]?.category_id || 'MLB1953'; // Default para 'Outros' se falhar
 
     // 2. Formatar os dados para a função createListing
     const listingData = {
@@ -24,7 +25,7 @@ export async function POST(request) {
       categoryId,
       price: product.sellingPrice || product.price,
       description: `Produto internacional de alta qualidade.\n\nVeja mais detalhes na nossa loja.`,
-      images: product.image ? [product.image] : [],
+      images: product.image ? [product.image.startsWith('//') ? `https:${product.image}` : product.image] : [],
       quantity: 10,
     };
 
