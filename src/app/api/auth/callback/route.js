@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -24,10 +25,22 @@ export async function GET(request) {
     const data = await response.json();
 
     if (data.access_token) {
-      const redirectUrl = new URL('/dashboard', request.url);
-      redirectUrl.searchParams.set('token', data.access_token);
-      redirectUrl.searchParams.set('user_id', data.user_id);
-      return NextResponse.redirect(redirectUrl);
+      // Salva os dados em cookies
+      cookies().set('ml_token', data.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 6, // 6 hours (ML token expiration is typically 6 hours)
+        path: '/',
+      });
+      
+      cookies().set('ml_user_id', data.user_id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 6,
+        path: '/',
+      });
+
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     return NextResponse.redirect(new URL('/?error=auth_failed', request.url));
